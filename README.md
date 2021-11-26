@@ -1,6 +1,6 @@
 # Soft-Actor-Critic-Pytorch-implementation
-Let's implement SAC with PyTorch for HalfCheetah and InvertedPendulum environments.
+Let's implement SAC with PyTorch for gym's environments.
 
-Run the code with: python3 sac.py.
+Run the code with: python3 sac.py --env='...' --max_timesteps=... --batch_size=...
 
-Change the environment on line 322.
+All arguments have their own default value, so the code still run when the arguments are not specify in the command.

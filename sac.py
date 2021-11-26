@@ -1,6 +1,7 @@
 # This implementation is written with the help from a tutorial from the Youtube channel "Machine Learning with Phil"
 # https://www.youtube.com/watch?v=ioidsRlf79o
 
+import argparse
 import pybullet_envs
 import gym
 import numpy as np
@@ -329,10 +330,18 @@ def plot_learning_curve(x, scores, figure_file):
 
 
 if __name__ == '__main__':
-    env = gym.make('InvertedPendulumBulletEnv-v0')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--algo_name', default='SAC')
+    parser.add_argument('--env', default='InvertedPendulumBulletEnv-v0')
+    parser.add_argument('--max_timesteps', default=500000)
+    parser.add_argument('--batch_size', default=256)
+
+    args = parser.parse_args()
+
+    env = gym.make(args.env)
     agent = SAC(input_dim=env.observation_space.shape, env=env,
             action_dim=env.action_space.shape[0])
-    n_games = 250
+    max_timesteps = args.max_timesteps
     # uncomment this line and do a mkdir tmp && mkdir video if you want to
     # record video of the agent playing the game.
     #env = wrappers.Monitor(env, 'tmp/video', video_callable=lambda episode_id: True, force=True)
@@ -348,7 +357,7 @@ if __name__ == '__main__':
         agent.load_models()
         env.render(mode='human')
 
-    for i in range(n_games):
+    for i in range(max_timesteps):
         observation = env.reset()
         done = False
         score = 0
@@ -371,9 +380,8 @@ if __name__ == '__main__':
         print('episode ', i, 'score %.1f' % score, 'avg_score %.1f' % avg_score)
 
     if not load_checkpoint:
-        x = [i+1 for i in range(n_games)]
+        x = [i+1 for i in range(max_timesteps)]
         plot_learning_curve(x, score_history, figure_file)
         
-
 
 

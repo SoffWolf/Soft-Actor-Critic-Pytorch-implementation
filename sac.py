@@ -379,7 +379,7 @@ if __name__ == '__main__':
             agent.remember(observation, action, reward, observation_, done)
             if not load_checkpoint:
                 update_info = agent.learn()
-                wandb.log({'train/': update_info})
+                # wandb.log({'train/': update_info})
             observation = observation_
         score_history.append(score)
         avg_score = np.mean(score_history[-100:])

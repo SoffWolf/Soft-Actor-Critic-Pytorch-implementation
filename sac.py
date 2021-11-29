@@ -241,7 +241,7 @@ class SAC():
         self.target_value.load_state_dict(value_state_dict)
 
     def save_models(self):
-        print('.... saving models ....')
+        print('.... saving models ....', flush=True)
         self.actor.save_checkpoint()
         self.value.save_checkpoint()
         self.target_value.save_checkpoint()
@@ -249,7 +249,7 @@ class SAC():
         self.critic_2.save_checkpoint()
 
     def load_models(self):
-        print('.... loading models ....')
+        print('.... loading models ....', flush=True)
         self.actor.load_checkpoint()
         self.value.load_checkpoint()
         self.target_value.load_checkpoint()
@@ -377,7 +377,7 @@ if __name__ == '__main__':
             if not load_checkpoint:
                 agent.save_models()
 
-        print('episode ', i, 'score %.1f' % score, 'avg_score %.1f' % avg_score)
+        print('episode ', i, 'score %.1f' % score, 'avg_score %.1f' % avg_score, flush=True)
 
     if not load_checkpoint:
         x = [i+1 for i in range(max_timesteps)]

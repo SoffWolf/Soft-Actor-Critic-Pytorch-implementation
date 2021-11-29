@@ -19,6 +19,7 @@ import tqdm
 
 device = T.device('cuda' if T.cuda.is_available() else 'cpu')
 
+
 class ReplayBuffer():
     def __init__(self, mem_size, state_dim, action_dim):
         self.mem_size = mem_size
@@ -54,11 +55,10 @@ class ReplayBuffer():
         return states, actions, rewards, states_, dones
 
 
-
 ###################### Define Agent ########################
 class Critic(nn.Module):
     def __init__(self, beta, input_dim, action_dim, fc1_dim=256, fc2_dim=256,
-            name='critic', chkpt_dir='tmp'):
+                 name='critic', chkpt_dir='tmp'):
         super(Critic, self).__init__()
 
         self.input_dim = input_dim
@@ -67,9 +67,9 @@ class Critic(nn.Module):
         self.action_dim = action_dim
         self.name = name
         self.checkpoint_dir = chkpt_dir
-        self.checkpoint_file = os.path.join(self.checkpoint_dir, name+'_sac')
+        self.checkpoint_file = os.path.join(self.checkpoint_dir, name + '_sac')
 
-        self.fc1 = nn.Linear(self.input_dim[0]+action_dim, self.fc1_dim)
+        self.fc1 = nn.Linear(self.input_dim[0] + action_dim, self.fc1_dim)
         self.fc2 = nn.Linear(self.fc1_dim, self.fc2_dim)
         self.q = nn.Linear(self.fc2_dim, 1)
 
@@ -94,23 +94,24 @@ class Critic(nn.Module):
     def load_checkpoint(self):
         self.load_state_dict(T.load(self.checkpoint_file))
 
+
 class ValueNetwork(nn.Module):
     def __init__(self, beta, input_dim, fc1_dim=256, fc2_dim=256,
-            name='value', chkpt_dir='tmp'):
+                 name='value', chkpt_dir='tmp'):
         super(ValueNetwork, self).__init__()
         self.input_dim = input_dim
         self.fc1_dim = fc1_dim
         self.fc2_dim = fc2_dim
         self.name = name
         self.checkpoint_dir = chkpt_dir
-        self.checkpoint_file = os.path.join(self.checkpoint_dir, name+'_sac')
+        self.checkpoint_file = os.path.join(self.checkpoint_dir, name + '_sac')
 
         self.fc1 = nn.Linear(*self.input_dim, self.fc1_dim)
         self.fc2 = nn.Linear(self.fc1_dim, fc2_dim)
         self.v = nn.Linear(self.fc2_dim, 1)
 
         self.optimizer = optim.Adam(self.parameters(), lr=beta)
-        self.device = device 
+        self.device = device
 
         self.to(self.device)
 
@@ -131,11 +132,9 @@ class ValueNetwork(nn.Module):
         self.load_state_dict(T.load(self.checkpoint_file))
 
 
-
-
 class Actor(nn.Module):
-    def __init__(self, alpha, input_dim, max_action, fc1_dim=256, 
-            fc2_dim=256, action_dim=2, name='actor', chkpt_dir='tmp'):
+    def __init__(self, alpha, input_dim, max_action, fc1_dim=256,
+                 fc2_dim=256, action_dim=2, name='actor', chkpt_dir='tmp'):
         super(Actor, self).__init__()
         self.input_dim = input_dim
         self.fc1_dim = fc1_dim
@@ -143,7 +142,7 @@ class Actor(nn.Module):
         self.action_dim = action_dim
         self.name = name
         self.checkpoint_dir = chkpt_dir
-        self.checkpoint_file = os.path.join(self.checkpoint_dir, name+'_sac')
+        self.checkpoint_file = os.path.join(self.checkpoint_dir, name + '_sac')
         self.max_action = max_action
         self.reparam_noise = 1e-6
 
@@ -153,7 +152,7 @@ class Actor(nn.Module):
         self.sigma = nn.Linear(self.fc2_dim, self.action_dim)
 
         self.optimizer = optim.Adam(self.parameters(), lr=alpha)
-        self.device = device 
+        self.device = device
 
         self.to(self.device)
 
@@ -179,9 +178,9 @@ class Actor(nn.Module):
         else:
             actions = probabilities.sample()
 
-        action = T.tanh(actions)*T.tensor(self.max_action).to(self.device)
+        action = T.tanh(actions) * T.tensor(self.max_action).to(self.device)
         log_probs = probabilities.log_prob(actions)
-        log_probs -= T.log(1-action.pow(2)+self.reparam_noise)
+        log_probs -= T.log(1 - action.pow(2) + self.reparam_noise)
         log_probs = log_probs.sum(1, keepdim=True)
 
         return action, log_probs
@@ -193,13 +192,11 @@ class Actor(nn.Module):
         self.load_state_dict(T.load(self.checkpoint_file))
 
 
-
-
 ######################### SAC #############################
 class SAC():
     def __init__(self, alpha=0.0003, beta=0.0003, input_dim=[8],
-            env=None, gamma=0.99, action_dim=2, max_size=1000000, tau=0.005,
-            layer1_size=256, layer2_size=256, batch_size=256, reward_scale=2):
+                 env=None, gamma=0.99, action_dim=2, max_size=1000000, tau=0.005,
+                 layer1_size=256, layer2_size=256, batch_size=256, reward_scale=2):
         self.gamma = gamma
         self.tau = tau
         self.memory = ReplayBuffer(max_size, input_dim, action_dim)
@@ -207,11 +204,11 @@ class SAC():
         self.action_dim = action_dim
 
         self.actor = Actor(alpha, input_dim, action_dim=action_dim,
-                    name='actor', max_action=env.action_space.high)
+                           name='actor', max_action=env.action_space.high)
         self.critic_1 = Critic(beta, input_dim, action_dim=action_dim,
-                    name='critic_1')
+                               name='critic_1')
         self.critic_2 = Critic(beta, input_dim, action_dim=action_dim,
-                    name='critic_2')
+                               name='critic_2')
         self.value = ValueNetwork(beta, input_dim, name='value')
         self.target_value = ValueNetwork(beta, input_dim, name='target_value')
 
@@ -238,8 +235,8 @@ class SAC():
         value_state_dict = dict(value_params)
 
         for name in value_state_dict:
-            value_state_dict[name] = tau*value_state_dict[name].clone() + \
-                    (1-tau)*target_value_state_dict[name].clone()
+            value_state_dict[name] = tau * value_state_dict[name].clone() + \
+                                     (1 - tau) * target_value_state_dict[name].clone()
 
         self.target_value.load_state_dict(value_state_dict)
 
@@ -264,7 +261,7 @@ class SAC():
             return
 
         state, action, reward, new_state, done = \
-                self.memory.sample(self.batch_size)
+            self.memory.sample(self.batch_size)
 
         reward = T.tensor(reward, dtype=T.float).to(self.actor.device)
         done = T.tensor(done).to(self.actor.device)
@@ -295,7 +292,7 @@ class SAC():
         q2_new_policy = self.critic_2.forward(state, actions)
         critic_value = T.min(q1_new_policy, q2_new_policy)
         critic_value = critic_value.view(-1)
-        
+
         actor_loss = log_probs - critic_value
         actor_loss = T.mean(actor_loss)
         self.actor.optimizer.zero_grad()
@@ -304,7 +301,7 @@ class SAC():
 
         self.critic_1.optimizer.zero_grad()
         self.critic_2.optimizer.zero_grad()
-        q_hat = self.scale*reward + self.gamma*value_
+        q_hat = self.scale * reward + self.gamma * value_
         q1_old_policy = self.critic_1.forward(state, action).view(-1)
         q2_old_policy = self.critic_2.forward(state, action).view(-1)
         critic_1_loss = 0.5 * F.mse_loss(q1_old_policy, q_hat)
@@ -321,18 +318,13 @@ class SAC():
                 'crt_loss': critic_loss.item()}
 
 
-
-
 def plot_learning_curve(x, scores, figure_file):
     running_avg = np.zeros(len(scores))
     for i in range(len(running_avg)):
-        running_avg[i] = np.mean(scores[max(0, i-100):(i+1)])
+        running_avg[i] = np.mean(scores[max(0, i - 100):(i + 1)])
     plt.plot(x, running_avg)
     plt.title('Running average of previous 100 scores')
     plt.savefig(figure_file)
-
-
-
 
 
 if __name__ == '__main__':
@@ -356,14 +348,14 @@ if __name__ == '__main__':
 
     env = gym.make(args.env)
     agent = SAC(input_dim=env.observation_space.shape, env=env, max_size=int(args.num_timesteps_per_env),
-            action_dim=env.action_space.shape[0], batch_size=args.minibatch_size)
+                action_dim=env.action_space.shape[0], batch_size=args.minibatch_size)
     max_timesteps = args.max_timesteps
     experiment_name = f"{args.env}_{args.algo_name}_{args.seed}_{int(time.time())}"
 
     wandb.init(project='rl_project', config=vars(args), name=experiment_name)
     # uncomment this line and do a mkdir tmp && mkdir video if you want to
     # record video of the agent playing the game.
-    #env = wrappers.Monitor(env, 'tmp/video', video_callable=lambda episode_id: True, force=True)
+    # env = wrappers.Monitor(env, 'tmp/video', video_callable=lambda episode_id: True, force=True)
     filename = 'inverted_pendulum.png'
 
     figure_file = 'plots/' + filename
@@ -376,7 +368,7 @@ if __name__ == '__main__':
         agent.load_models()
         env.render(mode='human')
 
-    for i in tqdm.tqdm(range(1, num_updates+1)):
+    for i in tqdm.tqdm(range(1, num_updates + 1)):
         observation = env.reset()
         done = False
         score = 0
@@ -400,8 +392,5 @@ if __name__ == '__main__':
         print('episode ', i, 'score %.1f' % score, 'avg_score %.1f' % avg_score, flush=True)
         wandb.log({'eval/': {'timesteps': i, 'returns': score}})
     if not load_checkpoint:
-        x = [i+1 for i in range(max_timesteps)]
+        x = [i + 1 for i in range(max_timesteps)]
         plot_learning_curve(x, score_history, figure_file)
-        
-
-

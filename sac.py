@@ -13,6 +13,8 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributions.normal import Normal
 import matplotlib.pyplot as plt
+import wandb
+import time
 
 device = T.device('cuda' if T.cuda.is_available() else 'cpu')
 
@@ -313,6 +315,9 @@ class SAC():
         self.critic_2.optimizer.step()
 
         self.update_network_parameters()
+        return {'act_loss': actor_loss.item(),
+                'val_loss': value_loss.item(),
+                'crt_loss': critic_loss.item()}
 
 
 
@@ -335,13 +340,19 @@ if __name__ == '__main__':
     parser.add_argument('--env', default='InvertedPendulumBulletEnv-v0')
     parser.add_argument('--max_timesteps', default=500000)
     parser.add_argument('--batch_size', default=256)
+    parser.add_argument('--seed', type=int, default=0, help='seed of the experiment')
 
     args = parser.parse_args()
+    if args.seed == 0:
+        args.seed = int(time.time())
 
     env = gym.make(args.env)
     agent = SAC(input_dim=env.observation_space.shape, env=env,
             action_dim=env.action_space.shape[0])
     max_timesteps = args.max_timesteps
+    experiment_name = f"{args.env}_{args.algo_name}_{args.seed}_{int(time.time())}"
+
+    wandb.init(project='rl_project', config=vars(args), name=experiment_name)
     # uncomment this line and do a mkdir tmp && mkdir video if you want to
     # record video of the agent playing the game.
     #env = wrappers.Monitor(env, 'tmp/video', video_callable=lambda episode_id: True, force=True)
@@ -367,7 +378,8 @@ if __name__ == '__main__':
             score += reward
             agent.remember(observation, action, reward, observation_, done)
             if not load_checkpoint:
-                agent.learn()
+                update_info = agent.learn()
+                wandb.log({'train/': update_info})
             observation = observation_
         score_history.append(score)
         avg_score = np.mean(score_history[-100:])
@@ -378,7 +390,7 @@ if __name__ == '__main__':
                 agent.save_models()
 
         print('episode ', i, 'score %.1f' % score, 'avg_score %.1f' % avg_score, flush=True)
-
+        wandb.log({'eval/': {'timesteps': i, 'returns': score}})
     if not load_checkpoint:
         x = [i+1 for i in range(max_timesteps)]
         plot_learning_curve(x, score_history, figure_file)

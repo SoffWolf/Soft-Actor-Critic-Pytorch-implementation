@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import wandb
 import time
 import tqdm
+import random
 
 device = T.device('cuda' if T.cuda.is_available() else 'cpu')
 
@@ -341,6 +342,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if args.seed == 0:
         args.seed = int(time.time())
+
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    T.manual_seed(args.seed)
 
     args.batch_size = int(args.num_timesteps_per_env)
     args.minibatch_size = int(args.batch_size // args.n_minibatch)

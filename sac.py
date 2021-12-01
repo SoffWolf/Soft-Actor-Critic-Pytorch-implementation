@@ -347,6 +347,9 @@ if __name__ == '__main__':
     num_updates = args.max_timesteps // args.batch_size
 
     env = gym.make(args.env)
+    env.seed(args.seed)
+    env.action_space.seed(args.seed)
+    env.observation_space.seed(args.seed)
     agent = SAC(input_dim=env.observation_space.shape, env=env, max_size=int(args.num_timesteps_per_env),
                 action_dim=env.action_space.shape[0], batch_size=args.minibatch_size)
     max_timesteps = args.max_timesteps

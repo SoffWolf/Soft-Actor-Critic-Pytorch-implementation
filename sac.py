@@ -197,21 +197,27 @@ class Actor(nn.Module):
 class SAC():
     def __init__(self, alpha=0.0003, beta=0.0003, input_dim=[8],
                  env=None, gamma=0.99, action_dim=2, max_size=1000000, tau=0.005,
-                 layer1_size=256, layer2_size=256, batch_size=256, reward_scale=2):
+                 layer1_size=256, layer2_size=256, batch_size=256, reward_scale=2,
+                 seed=None):
         self.gamma = gamma
         self.tau = tau
         self.memory = ReplayBuffer(max_size, input_dim, action_dim)
         self.batch_size = batch_size
         self.action_dim = action_dim
 
+        if not os.path.exists('ckpt_' + str(seed)):
+            os.mkdir('ckpt_' + str(seed))
+
         self.actor = Actor(alpha, input_dim, action_dim=action_dim,
-                           name='actor', max_action=env.action_space.high)
+                           name='actor', max_action=env.action_space.high,
+                           chkpt_dir='ckpt_' + str(seed))
         self.critic_1 = Critic(beta, input_dim, action_dim=action_dim,
-                               name='critic_1')
+                               name='critic_1', chkpt_dir='ckpt_' + str(seed))
         self.critic_2 = Critic(beta, input_dim, action_dim=action_dim,
-                               name='critic_2')
-        self.value = ValueNetwork(beta, input_dim, name='value')
-        self.target_value = ValueNetwork(beta, input_dim, name='target_value')
+                               name='critic_2', chkpt_dir='ckpt_' + str(seed))
+        self.value = ValueNetwork(beta, input_dim, name='value', chkpt_dir='ckpt_' + str(seed))
+        self.target_value = ValueNetwork(beta, input_dim, name='target_value',
+                                         chkpt_dir='ckpt_' + str(seed))
 
         self.scale = reward_scale
         self.update_network_parameters(tau=1)
@@ -356,7 +362,8 @@ if __name__ == '__main__':
     env.action_space.seed(args.seed)
     env.observation_space.seed(args.seed)
     agent = SAC(input_dim=env.observation_space.shape, env=env, max_size=int(args.num_timesteps_per_env),
-                action_dim=env.action_space.shape[0], batch_size=args.minibatch_size)
+                action_dim=env.action_space.shape[0], batch_size=args.minibatch_size,
+                seed=args.seed)
     max_timesteps = args.max_timesteps
     experiment_name = f"{args.env}_{args.algo_name}_{args.seed}_{int(time.time())}"
 

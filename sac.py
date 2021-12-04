@@ -382,7 +382,7 @@ if __name__ == '__main__':
     if load_checkpoint:
         agent.load_models()
         env.render(mode='human')
-
+    timestep = 0
     for i in tqdm.tqdm(range(1, num_updates + 1)):
         observation = env.reset()
         done = False
@@ -392,6 +392,8 @@ if __name__ == '__main__':
             observation_, reward, done, info = env.step(action)
             score += reward
             agent.remember(observation, action, reward, observation_, done)
+            wandb.log({'eval/': {'timesteps': timestep, 'returns': reward}})
+            timestep += 1
             if not load_checkpoint:
                 update_info = agent.learn()
                 # wandb.log({'train/': update_info})
@@ -405,7 +407,6 @@ if __name__ == '__main__':
                 agent.save_models()
 
         print('episode ', i, 'score %.1f' % score, 'avg_score %.1f' % avg_score, flush=True)
-        wandb.log({'eval/': {'timesteps': i, 'returns': score}})
     if not load_checkpoint:
         x = [i + 1 for i in range(max_timesteps)]
         plot_learning_curve(x, score_history, figure_file)

@@ -333,6 +333,19 @@ def plot_learning_curve(x, scores, figure_file):
     plt.title('Running average of previous 100 scores')
     plt.savefig(figure_file)
 
+def eval_policy(policy, eval_env, eval_episodes=10):
+    avg_reward = 0
+    for episode in range(0, eval_episodes):
+        observation = eval_env.reset()
+        done = False
+        while not done:
+            action = agent.choose_action(observation)
+            observation_, reward, done, info = eval_env.step(action)
+            avg_reward += reward
+            observation = observation_
+
+    return {'returns': avg_reward/eval_episodes}
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -340,6 +353,7 @@ if __name__ == '__main__':
     parser.add_argument('--env', default='InvertedPendulumBulletEnv-v0')
     parser.add_argument('--n_minibatch', type=int, default=32,
                         help='the number of mini batch')
+    parser.add_argument("--eval_freq", default=5000, type=int)
     parser.add_argument('--num_timesteps_per_env', type=int, default=2048,
                         help='the number of timesteps per environment to collect during interacting with environments.')
     parser.add_argument('--max_timesteps', default=2000000)
@@ -361,6 +375,12 @@ if __name__ == '__main__':
     env.seed(args.seed)
     env.action_space.seed(args.seed)
     env.observation_space.seed(args.seed)
+
+    eval_env = gym.make(args.env)
+    eval_env.seed(args.seed + 100)
+    eval_env.action_space.seed(args.seed + 100)
+    env.observation_space.seed(args.seed + 100)
+
     agent = SAC(input_dim=env.observation_space.shape, env=env, max_size=int(args.num_timesteps_per_env),
                 action_dim=env.action_space.shape[0], batch_size=args.minibatch_size,
                 seed=args.seed)
@@ -383,21 +403,26 @@ if __name__ == '__main__':
         agent.load_models()
         env.render(mode='human')
     timestep = 0
-    for i in tqdm.tqdm(range(1, num_updates + 1)):
-        observation = env.reset()
-        done = False
-        score = 0
-        while not done:
-            action = agent.choose_action(observation)
-            observation_, reward, done, info = env.step(action)
-            score += reward
-            agent.remember(observation, action, reward, observation_, done)
-            wandb.log({'eval/': {'timesteps': timestep, 'returns': reward}})
-            timestep += 1
-            if not load_checkpoint:
-                update_info = agent.learn()
-                # wandb.log({'train/': update_info})
-            observation = observation_
+    observation = env.reset()
+    done = False
+    score = 0
+    for i in tqdm.tqdm(range(1, max_timesteps)):
+        action = agent.choose_action(observation)
+        observation_, reward, done, info = env.step(action)
+        score += reward
+        agent.remember(observation, action, reward, observation_, done)
+
+        timestep += 1
+        if not load_checkpoint:
+            update_info = agent.learn()
+        if timestep % args.eval_freq == 0:
+            eval_info = eval_policy(agent, eval_env)
+            eval_info.update({'timesteps': timestep})
+            wandb.log({'eval/': eval_info})
+        observation = observation_
+        if done:
+            observation, done, score = env.reset(), False, 0
+
         score_history.append(score)
         avg_score = np.mean(score_history[-100:])
 

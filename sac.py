@@ -339,7 +339,7 @@ def eval_policy(policy, eval_env, eval_episodes=10):
         observation = eval_env.reset()
         done = False
         while not done:
-            action = agent.choose_action(observation)
+            action = policy.choose_action(observation)
             observation_, reward, done, info = eval_env.step(action)
             avg_reward += reward
             observation = observation_
@@ -350,7 +350,7 @@ def eval_policy(policy, eval_env, eval_episodes=10):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--algo_name', default='SAC')
-    parser.add_argument('--env', default='InvertedPendulumBulletEnv-v0')
+    parser.add_argument('--env', default='HalfCheetahBulletEnv-v0')
     parser.add_argument('--n_minibatch', type=int, default=32,
                         help='the number of mini batch')
     parser.add_argument("--eval_freq", default=5000, type=int)
@@ -379,10 +379,10 @@ if __name__ == '__main__':
     eval_env = gym.make(args.env)
     eval_env.seed(args.seed + 100)
     eval_env.action_space.seed(args.seed + 100)
-    env.observation_space.seed(args.seed + 100)
+    eval_env.observation_space.seed(args.seed + 100)
 
-    agent = SAC(input_dim=env.observation_space.shape, env=env, max_size=int(args.num_timesteps_per_env),
-                action_dim=env.action_space.shape[0], batch_size=args.minibatch_size,
+    agent = SAC(input_dim=env.observation_space.shape, env=env,
+                action_dim=env.action_space.shape[0],
                 seed=args.seed)
     max_timesteps = args.max_timesteps
     experiment_name = f"{args.env}_{args.algo_name}_{args.seed}_{int(time.time())}"

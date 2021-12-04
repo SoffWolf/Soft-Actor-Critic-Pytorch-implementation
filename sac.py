@@ -350,7 +350,7 @@ def eval_policy(policy, eval_env, eval_episodes=10):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--algo_name', default='SAC')
-    parser.add_argument('--env', default='HalfCheetahBulletEnv-v0')
+    parser.add_argument('--env', default='InvertedPendulumBulletEnv-v0')
     parser.add_argument('--n_minibatch', type=int, default=32,
                         help='the number of mini batch')
     parser.add_argument("--eval_freq", default=5000, type=int)

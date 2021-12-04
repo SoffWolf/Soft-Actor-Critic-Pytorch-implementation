@@ -350,7 +350,7 @@ def eval_policy(policy, eval_env, eval_episodes=10):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--algo_name', default='SAC')
-    parser.add_argument('--env', default='InvertedPendulumBulletEnv-v0')
+    parser.add_argument('--env', default='HalfCheetahBulletEnv-v0')
     parser.add_argument('--n_minibatch', type=int, default=32,
                         help='the number of mini batch')
     parser.add_argument("--eval_freq", default=5000, type=int)
@@ -402,36 +402,33 @@ if __name__ == '__main__':
     if load_checkpoint:
         agent.load_models()
         env.render(mode='human')
-    timestep = 0
     observation = env.reset()
     done = False
-    score = 0
+    episode_timesteps = 0
     for i in tqdm.tqdm(range(1, max_timesteps)):
+        episode_timesteps += 1
         action = agent.choose_action(observation)
         observation_, reward, done, info = env.step(action)
-        score += reward
-        agent.remember(observation, action, reward, observation_, done)
+        done_float = float(done) if episode_timesteps < env._max_episode_steps else 0.
+        agent.remember(observation, action, reward, observation_, done_float)
 
-        timestep += 1
         if not load_checkpoint:
             update_info = agent.learn()
-        if timestep % args.eval_freq == 0:
+        if i % args.eval_freq == 0:
             eval_info = eval_policy(agent, eval_env)
-            eval_info.update({'timesteps': timestep})
+            eval_info.update({'timesteps': i})
+            print(f"Time steps: {i}, Eval_info: {eval_info}", flush=True)
             wandb.log({'eval/': eval_info})
+            if eval_info['returns'] > best_score:
+                best_score = eval_info['returns']
+                if not load_checkpoint:
+                    agent.save_models()
         observation = observation_
         if done:
             observation, done, score = env.reset(), False, 0
+            episode_timesteps = 0
 
-        score_history.append(score)
-        avg_score = np.mean(score_history[-100:])
 
-        if avg_score > best_score:
-            best_score = avg_score
-            if not load_checkpoint:
-                agent.save_models()
-
-        print('episode ', i, 'score %.1f' % score, 'avg_score %.1f' % avg_score, flush=True)
     if not load_checkpoint:
         x = [i + 1 for i in range(max_timesteps)]
         plot_learning_curve(x, score_history, figure_file)

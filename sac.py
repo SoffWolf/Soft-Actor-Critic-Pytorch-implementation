@@ -358,6 +358,7 @@ if __name__ == '__main__':
                         help='the number of timesteps per environment to collect during interacting with environments.')
     parser.add_argument('--max_timesteps', default=2000000)
     parser.add_argument('--seed', type=int, default=0, help='seed of the experiment')
+    parser.add_argument('--reward_scale', type=int, default=1, help='reward_scale')
 
     args = parser.parse_args()
     if args.seed == 0:
@@ -383,9 +384,9 @@ if __name__ == '__main__':
 
     agent = SAC(input_dim=env.observation_space.shape, env=env,
                 action_dim=env.action_space.shape[0],
-                seed=args.seed)
+                seed=args.seed, reward_scale=args.reward_scale)
     max_timesteps = args.max_timesteps
-    experiment_name = f"{args.env}_{args.algo_name}_{args.seed}_{int(time.time())}"
+    experiment_name = f"{args.env}_{args.algo_name}_{args.reward_scale}_{args.seed}_{int(time.time())}"
 
     wandb.init(project='rl_project', config=vars(args), name=experiment_name)
     # uncomment this line and do a mkdir tmp && mkdir video if you want to
